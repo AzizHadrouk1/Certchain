@@ -1,0 +1,66 @@
+/* =====================================================================
+   CertChain — Global Styles
+   Dark theme with Hedera-inspired teal accent
+   ===================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
+
+/* ── Design Tokens ─────────────────────────────────────────────────── */
+:root {
+  --font-display: 'Syne', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+
+  /* Dark palette */
+  --bg:          #09090b;
+  --surface:     rgba(15, 15, 18, 0.85);
+  --card-bg:     #111114;
+  --input-bg:    #0d0d10;
+  --hover:       rgba(255, 255, 255, 0.04);
+  --border:      rgba(255, 255, 255, 0.08);
+
+  --text-primary:   #f4f4f5;
+  --text-secondary: #71717a;
+
+  /* Hedera teal accent */
+  --accent:     #2dd4bf;
+  --accent-dim: rgba(45, 212, 191, 0.08);
+}
+
+/* ── Reset ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* ── Typography Defaults ───────────────────────────────────────────── */
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  color: var(--text-primary);
+  line-height: 1.15;
+}
+
+code {
+  font-family: 'Fira Code', 'Cascadia Code', 'Menlo', monospace;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  font-size: 0.85em;
+  color: var(--accent);
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+/* ── Selection ─────────────────────────────────────────────────────── */
+::selection { background: rgba(45, 212, 191, 0.25); }
