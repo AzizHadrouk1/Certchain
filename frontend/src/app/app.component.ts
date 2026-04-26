@@ -13,8 +13,8 @@ import { NavbarComponent } from './components/navbar/navbar.component';
     </main>
   `,
   styles: [`
-    :host { display: block; min-height: 100vh; }
-    .main-content { padding-top: 72px; }
+    :host { display: block; min-height: 100vh; background: var(--bg); }
+    .main-content { padding-top: 4.5rem; }
   `],
 })
 export class AppComponent {}

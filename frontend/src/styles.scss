@@ -1,29 +1,36 @@
-/* =====================================================================
-   CertChain — Global Styles
-   Dark theme with Hedera-inspired teal accent
-   ===================================================================== */
+/* CertChain — Global styles (light, logo-aligned: navy + blue→purple) */
 
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&display=swap');
 
-/* ── Design Tokens ─────────────────────────────────────────────────── */
+/* ── Design tokens ─────────────────────────────────────────────────── */
 :root {
-  --font-display: 'Syne', sans-serif;
-  --font-body: 'DM Sans', sans-serif;
+  --font-display: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-  /* Dark palette */
-  --bg:          #09090b;
-  --surface:     rgba(15, 15, 18, 0.85);
-  --card-bg:     #111114;
-  --input-bg:    #0d0d10;
-  --hover:       rgba(255, 255, 255, 0.04);
-  --border:      rgba(255, 255, 255, 0.08);
+  /* Logo palette: white base, navy text, blue→violet gradient */
+  --color-navy: #0d1117;
+  --color-navy-muted: #374151;
+  --color-gradient-start: #2563eb;
+  --color-gradient-end: #7c3aed;
+  --gradient-brand: linear-gradient(135deg, var(--color-gradient-start) 0%, var(--color-gradient-end) 100%);
+  --gradient-subtle: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(124, 58, 237, 0.08) 100%);
 
-  --text-primary:   #f4f4f5;
-  --text-secondary: #71717a;
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --card-bg: #ffffff;
+  --input-bg: #f9fafb;
+  --hover: rgba(13, 17, 23, 0.06);
+  --border: #e5e7eb;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 20px rgba(15, 23, 42, 0.08);
 
-  /* Hedera teal accent */
-  --accent:     #2dd4bf;
-  --accent-dim: rgba(45, 212, 191, 0.08);
+  --text-primary: #0d1117;
+  --text-secondary: #4b5563;
+
+  /* Accent: gradient for CTAs; solid purple for text links / highlights */
+  --accent: #5b21b6;
+  --accent-dim: rgba(37, 99, 235, 0.1);
+  --on-gradient: #ffffff;
 }
 
 /* ── Reset ─────────────────────────────────────────────────────────── */
@@ -33,34 +40,40 @@ html { scroll-behavior: smooth; }
 
 body {
   font-family: var(--font-body);
+  font-size: 1rem;
   background: var(--bg);
   color: var(--text-primary);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+  font-weight: 400;
 }
 
-/* ── Typography Defaults ───────────────────────────────────────────── */
 h1, h2, h3, h4 {
   font-family: var(--font-display);
   color: var(--text-primary);
-  line-height: 1.15;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 code {
-  font-family: 'Fira Code', 'Cascadia Code', 'Menlo', monospace;
-  background: rgba(255, 255, 255, 0.06);
-  padding: 0.1em 0.35em;
-  border-radius: 4px;
-  font-size: 0.85em;
-  color: var(--accent);
+  font-family: 'Fira Code', 'Cascadia Code', 'Menlo', ui-monospace, monospace;
+  background: #f3f4f6;
+  padding: 0.12em 0.4em;
+  border-radius: 6px;
+  font-size: 0.875em;
+  color: #5b21b6;
+  border: 1px solid var(--border);
 }
 
 /* ── Scrollbar ─────────────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #f3f4f6; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
 
-/* ── Selection ─────────────────────────────────────────────────────── */
-::selection { background: rgba(45, 212, 191, 0.25); }
+::selection {
+  background: rgba(37, 99, 235, 0.2);
+  color: var(--text-primary);
+}

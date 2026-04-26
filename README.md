@@ -1,4 +1,4 @@
-# ⛓ CertChain — Tamper-Proof Diploma Verification on Hedera
+# ⛓ CertChain — Tamper‑Proof Diploma Verification on Hedera
 
 > **"Your degree, verifiable in seconds — no middleman."**
 
@@ -38,9 +38,10 @@ As a student holding two blockchain certifications (DLTC-BF101 and HCF from the 
 │                                                                   │
 │   ┌──────────────┐    ┌────────────────┐    ┌───────────────┐   │
 │   │  Home Page   │    │  Issue Cert    │    │  Verify Cert  │   │
-│   │              │    │  (SHA-256 hash │    │  (paste seq # │   │
-│   │  Landing +   │    │   computed     │    │   + optional  │   │
-│   │  How it      │    │   client-side) │    │   PDF upload) │   │
+│   │              │    │  (Institution  │    │  (PDF upload  │   │
+│   │  Landing +   │    │   login +      │    │   → QR auto‑  │   │
+│   │  How it      │    │   admin        │    │   detect OR   │   │
+│   │  works       │    │   approval)    │    │   QR scan)    │   │
 │   │  works       │    └───────┬────────┘    └──────┬────────┘   │
 │   └──────────────┘            │                    │            │
 └───────────────────────────────┼────────────────────┼────────────┘
@@ -48,9 +49,13 @@ As a student holding two blockchain certifications (DLTC-BF101 and HCF from the 
                     ┌───────────▼────────────────────▼────────────┐
                     │              Node.js Backend (Express)        │
                     │                                               │
-                    │   POST /api/certificate/issue                 │
+                    │   POST /api/auth/register | /login | /me      │
+                    │   POST /api/admin/... (approve institutions)  │
+                    │   POST /api/certificate/issue (protected)     │
                     │   GET  /api/certificate/verify/:seq           │
+                    │   GET  /api/certificate/verify-qr/:token      │
                     │   POST /api/certificate/verify-hash           │
+                    │   POST /api/certificate/verify-hash-qr        │
                     │   GET  /api/health                            │
                     │                                               │
                     │   ┌─────────────────────────────────────┐    │
@@ -91,8 +96,10 @@ As a student holding two blockchain certifications (DLTC-BF101 and HCF from the 
 | **Blockchain** | Hedera Consensus Service (HCS) | Fast finality (~3s), low cost (~$0.0001/tx), fair ordering |
 | **SDK** | `@hashgraph/sdk` v2 | Official Hedera JS SDK for HCS interaction |
 | **Read Layer** | Hedera Mirror Node REST API | Public, no API key needed for reads |
-| **Hashing** | Web Crypto API (browser) + Node.js `crypto` | SHA-256 of PDF bytes, computed client-side |
-| **File Upload** | Multer (multipart/form-data) | Handles PDF uploads in memory |
+| **Database** | PostgreSQL (Docker) | Institution accounts + approvals + certificate index (QR → sequence) |
+| **Auth** | JWT + bcrypt | Institution/admin accounts |
+| **PDF + QR** | PDFKit + qrcode | Server‑generated branded certificate PDF with QR |
+| **Hashing** | SHA‑256 of the generated PDF bytes | Hash anchored on Hedera HCS |
 
 ### Why Hedera HCS over other blockchains?
 
@@ -112,13 +119,19 @@ Hedera's fair ordering guarantee is especially important for credentials: no nod
 
 ```
 certchain/
+├── docker-compose.yml              # Postgres + Adminer (optional)
 ├── backend/
+│   ├── db/schema.sql               # Postgres schema (init)
 │   ├── src/
-│   │   ├── server.js                   # Express app + startup
+│   │   ├── server.js                   # Express app + startup (DB + auth + HCS)
 │   │   ├── routes/
-│   │   │   └── certificate.routes.js  # REST endpoints
+│   │   │   ├── auth.routes.js         # Register/login/me
+│   │   │   ├── admin.routes.js        # Approve/reject institutions
+│   │   │   ├── institution.routes.js  # Upload logo/signature assets
+│   │   │   └── certificate.routes.js  # Issue + verify (seq/QR/hash) + PDF download
 │   │   ├── services/
-│   │   │   └── hedera.service.js      # HCS client + Mirror Node reads
+│   │   │   ├── hedera.service.js      # HCS client + Mirror Node reads
+│   │   │   └── pdf.service.js         # Generate branded PDF + QR
 │   │   └── utils/
 │   │       └── hash.util.js           # SHA-256 helpers
 │   ├── .env.example                   # Template for credentials
@@ -159,6 +172,7 @@ certchain/
 | npm | 9+ |
 | Angular CLI | 17+ (`npm install -g @angular/cli`) |
 | Hedera Testnet Account | Free at [portal.hedera.com](https://portal.hedera.com) |
+| Docker Desktop (optional) | For Postgres + Adminer |
 
 ---
 
@@ -170,7 +184,27 @@ certchain/
 
 ---
 
-### Step 2 — Configure the Backend
+### Step 2 — Database (recommended)
+
+From the repo root:
+
+```bash
+docker compose up -d
+```
+
+Open **Adminer**: `http://localhost:8080`
+
+- System: `PostgreSQL`
+- Server: `postgres`
+- Username: `certchain`
+- Password: `certchain`
+- Database: `certchain`
+
+> If Docker cannot pull images (DNS / proxy), switch network or configure proxy/DNS.
+
+---
+
+### Step 3 — Configure the Backend
 
 ```bash
 cd certchain/backend
@@ -186,15 +220,23 @@ HEDERA_NETWORK=testnet
 HEDERA_ACCOUNT_ID=0.0.YOUR_ACCOUNT_ID
 HEDERA_PRIVATE_KEY=302e020100300506032b657004220420...YOUR_PRIVATE_KEY
 HEDERA_TOPIC_ID=        # leave blank — created automatically on first run
+
+# Database + Auth
+DATABASE_URL=postgresql://certchain:certchain@localhost:5432/certchain
+JWT_SECRET=change-this-to-a-long-random-string
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=ChangeMe123!
+
 PORT=3000
 FRONTEND_URL=http://localhost:4200
+PUBLIC_API_URL=http://localhost:3000
 ```
 
 > ⚠️ **Never commit `.env` to git.** It is in `.gitignore` by default.
 
 ---
 
-### Step 3 — Install & Run the Backend
+### Step 4 — Install & Run the Backend
 
 ```bash
 cd certchain/backend
@@ -227,7 +269,7 @@ curl http://localhost:3000/api/health
 
 ---
 
-### Step 4 — Install & Run the Frontend
+### Step 5 — Install & Run the Frontend
 
 ```bash
 cd certchain/frontend
@@ -241,115 +283,107 @@ Open [http://localhost:4200](http://localhost:4200) in your browser.
 
 ## 📡 API Reference
 
-### `POST /api/certificate/issue`
+### Auth
 
-Issue a certificate by anchoring its hash on HCS.
+#### `POST /api/auth/register` (public)
 
-**Content-Type:** `multipart/form-data`
+Creates an **institution** account with status `pending` (requires admin approval).
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `institution` | string | ✅ | Issuing institution name |
-| `recipientName` | string | ✅ | Full name of the graduate |
-| `courseName` | string | ✅ | Degree or course title |
-| `issueDate` | string | ✅ | ISO date (e.g. `2024-06-15`) |
-| `file` | PDF file | Optional | Diploma PDF (hashed server-side) |
-| `fileHash` | string | Optional | Pre-computed SHA-256 hex |
+Body: `{ email, password, institutionName, description? }`
 
-**Response `201`:**
-```json
-{
-  "success": true,
-  "certId": "550e8400-e29b-41d4-a716-446655440000",
-  "fileHash": "a3f1c9d2...",
-  "hcs": {
-    "sequenceNumber": "42",
-    "transactionId": "0.0.1234567@1718449200.000000000",
-    "topicId": "0.0.5000001",
-    "timestamp": "2024-06-15T10:00:00.000Z"
-  },
-  "message": "Certificate successfully anchored on Hedera HCS"
-}
-```
+#### `POST /api/auth/login` (public)
+Body: `{ email, password }` → returns `{ token, user }`
+
+#### `GET /api/auth/me` (Bearer)
+Returns current user.
 
 ---
 
-### `GET /api/certificate/verify/:sequenceNumber`
+### Admin (approvals)
 
-Fetch and return the on-chain certificate record.
+#### `GET /api/admin/institutions/pending` (admin Bearer)
+List pending institutions.
 
-**Response `200`:**
-```json
-{
-  "verified": true,
-  "certificate": {
-    "type": "CERTCHAIN_ISSUE",
-    "version": "1.0",
-    "certId": "550e8400-...",
-    "institution": "University of Algiers",
-    "recipientName": "Ahmed Ben Ali",
-    "courseName": "Master of Computer Science",
-    "issueDate": "2024-06-15",
-    "fileHash": "a3f1c9d2...",
-    "consensusTimestamp": "1718449203.123456789",
-    "sequenceNumber": "42",
-    "topicId": "0.0.5000001"
-  }
-}
-```
+#### `POST /api/admin/institutions/:id/approve` (admin Bearer)
+Approve an institution.
 
 ---
 
-### `POST /api/certificate/verify-hash`
+### Certificates
 
-Cross-check a provided file hash with the on-chain record.
+#### `POST /api/certificate/issue` (institution Bearer + approved)
 
-**Body:**
-```json
-{
-  "sequenceNumber": "42",
-  "fileHash": "a3f1c9d2..."
-}
-```
+Issues a certificate by:
+1) generating the **official PDF** (logo/signature optional),
+2) hashing the **PDF bytes** (SHA‑256),
+3) anchoring that hash on Hedera HCS,
+4) storing a `qrToken` → `sequenceNumber` mapping in Postgres.
 
-**Response `200`:**
-```json
-{
-  "verified": true,
-  "hashMatch": true,
-  "certificate": { ... },
-  "message": "✅ Hash matches — certificate is authentic"
-}
-```
+**Content‑Type**: `multipart/form-data`
+
+Fields:
+- `recipientName` (required)
+- `courseName` (required)
+- `issueDate` (required, ISO date)
+- `courseDescription` (optional)
+
+Response includes:
+- `qrToken`
+- `verifyUrl` (`/verify?qr=...`)
+- `pdfUrl` (`/api/certificate/issued/:certId/pdf`)
+
+#### `GET /api/certificate/issued/:certId/pdf` (institution Bearer)
+Downloads the exact PDF that was hashed/anchored (same institution only).
+
+---
+
+#### `GET /api/certificate/verify/:sequenceNumber` (public)
+Fetch on‑chain record by sequence number.
+
+#### `POST /api/certificate/verify-hash` (public)
+Body: `{ sequenceNumber, fileHash }`
+
+#### `GET /api/certificate/verify-qr/:token` (public)
+Resolve by QR token (token → sequenceNumber → Mirror Node).
+
+#### `POST /api/certificate/verify-hash-qr` (public)
+Body: `{ qrToken, fileHash }` (PDF hash + QR token cross‑check).
 
 ---
 
 ## 🔄 Complete User Flows
 
-### Issuing a Certificate (Institution)
+### Institution onboarding
+
+```
+1. Register institution account (/register)
+2. Admin logs in (/login) → opens /admin
+3. Admin approves the institution
+4. Institution can issue certificates in /issue
+```
+
+### Issuing a Certificate (Approved Institution)
 
 ```
 1. Navigate to /issue
-2. Fill in: institution, recipient, course, date
-3. (Optional) Upload the diploma PDF
-   → SHA-256 is computed in the browser via Web Crypto API
-   → The file never leaves the browser
-4. Click "Anchor on Hedera"
-5. Backend submits a JSON message to HCS
-6. Hedera returns a consensus timestamp + sequence number
-7. Institution gives the graduate their sequence number (e.g. "#42")
+2. Fill in certificate data (recipient, course, date, optional description)
+3. (Optional) upload institution logo / signature (once)
+4. Backend generates the official PDF and computes SHA‑256(PDF)
+5. Backend anchors the hash on Hedera HCS
+6. Student receives:
+   - the PDF (with a QR code)
+   - the HCS sequence number (optional, for manual lookup)
 ```
 
-### Verifying a Certificate (Employer)
+### Verifying a Certificate (Anyone)
 
 ```
 1. Navigate to /verify
-2. Enter the sequence number (#42)
-3. (Optional) Upload the diploma PDF the graduate provided
-4. Click "Verify Certificate"
-5. Backend queries the Hedera Mirror Node REST API (public, no auth needed)
-6. If PDF was uploaded: SHA-256 is compared with the on-chain hash
-7. Result shown: ✅ authentic / ❌ tampered / ❌ not found
+2. Option A — Upload the certificate PDF
+   - UI auto-detects the QR code
+   - Computes SHA‑256(PDF) and verifies against on-chain record
+3. Option B — Scan the QR code (or paste QR token)
+4. Option C — Paste the HCS sequence number
 ```
 
 ---
@@ -371,20 +405,16 @@ Cross-check a provided file hash with the on-chain record.
 ## 🧪 Testing the API with curl
 
 ```bash
-# Issue a certificate (no file, metadata-only)
-curl -X POST http://localhost:3000/api/certificate/issue \
-  -F "institution=Test University" \
-  -F "recipientName=Jane Doe" \
-  -F "courseName=BSc Computer Science" \
-  -F "issueDate=2024-06-01"
+# Login (institution/admin)
+curl -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d "{\"email\":\"admin@example.com\",\"password\":\"ChangeMe123!\"}"
 
-# Verify by sequence number (replace 1 with the returned sequenceNumber)
+# Verify by sequence number
 curl http://localhost:3000/api/certificate/verify/1
 
-# Verify with hash cross-check
-curl -X POST http://localhost:3000/api/certificate/verify-hash \
-  -H "Content-Type: application/json" \
-  -d '{"sequenceNumber":"1","fileHash":"YOUR_HASH_HERE"}'
+# Verify by QR token
+curl http://localhost:3000/api/certificate/verify-qr/YOUR_QR_TOKEN
 ```
 
 ---
@@ -424,7 +454,7 @@ ng build --configuration production
 
 ## 🗺️ Roadmap
 
-- [ ] **QR code generation** — embed the sequence number in a scannable QR on the diploma PDF
+- [x] **QR code generation** — QR embedded in the generated certificate PDF
 - [ ] **Bulk issuance** — CSV upload for graduation ceremonies (dozens of certs in one batch)
 - [ ] **Revocation** — submit a CERTCHAIN_REVOKE message to invalidate a credential
 - [ ] **Institution registry** — map institution names to their Hedera account IDs on-chain

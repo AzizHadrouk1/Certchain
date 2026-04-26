@@ -17,6 +17,30 @@ class HederaService {
     this.topicId = null;
   }
 
+  _parseOperatorKey(privateKey) {
+    const raw = (privateKey || '').trim();
+    if (!raw) return null;
+
+    // Common dev case: raw hex key copied with 0x prefix
+    // Try ED25519 first (most Hedera Portal accounts), then ECDSA.
+    const hex = raw.startsWith('0x') ? raw.slice(2) : raw;
+    if (/^[0-9a-fA-F]{64}$/.test(hex)) {
+      try {
+        return PrivateKey.fromStringED25519(hex);
+      } catch (_) {
+        // fall through
+      }
+      try {
+        return PrivateKey.fromStringECDSA(hex);
+      } catch (_) {
+        // fall through to generic parsing
+      }
+    }
+
+    // DER-encoded key string (often starts with 302e...); generic parser supports many formats
+    return PrivateKey.fromString(raw);
+  }
+
   async initialize() {
     const accountId = process.env.HEDERA_ACCOUNT_ID;
     const privateKey = process.env.HEDERA_PRIVATE_KEY;
@@ -28,6 +52,11 @@ class HederaService {
       );
     }
 
+    const operatorKey = this._parseOperatorKey(privateKey);
+    if (!operatorKey) {
+      throw new Error('HEDERA_PRIVATE_KEY is empty or invalid');
+    }
+
     // Build client
     if (network === 'mainnet') {
       this.client = Client.forMainnet();
@@ -37,7 +66,7 @@ class HederaService {
 
     this.client.setOperator(
       AccountId.fromString(accountId),
-      PrivateKey.fromString(privateKey)
+      operatorKey
     );
 
     // Resolve topic ID

@@ -11,6 +11,9 @@ export interface IssueResponse {
   fileHash: string;
   hcs: HcsInfo;
   message: string;
+  qrToken?: string;
+  verifyUrl?: string;
+  pdfUrl?: string;
 }
 
 export interface CertificateRecord {
